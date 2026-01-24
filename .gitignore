@@ -1,3 +1,8 @@
-kasir-api
-kasir-api.exe
+*.exe
+*.dll
+*.so
+*.dylib
 *.log
+.DS_Store
+/vendor/
+go.sum
