@@ -19,6 +19,14 @@ type Config struct {
 	DBConn string `mapstructure:"DB_CONN"`
 }
 
+// maskConnectionString hides sensitive info from logs
+func maskConnectionString(connStr string) string {
+	if len(connStr) < 50 {
+		return "***MASKED***"
+	}
+	return connStr[:20] + "***MASKED***" + connStr[len(connStr)-20:]
+}
+
 func main() {
 	// Load environment variables
 	viper.AutomaticEnv()
@@ -39,10 +47,17 @@ func main() {
 		config.Port = "8080"
 	}
 
+	// Log database connection status
+	if config.DBConn == "" {
+		log.Println("ERROR: DB_CONN environment variable not set")
+	} else {
+		log.Printf("Attempting database connection to: %s\n", maskConnectionString(config.DBConn))
+	}
+
 	// Setup database
 	db, err := database.InitDB(config.DBConn)
 	if err != nil {
-		log.Printf("Warning: Failed to initialize database: %v", err)
+		log.Printf("WARNING: Failed to initialize database: %v", err)
 		log.Println("Starting server without database connection...")
 		// Continue without database for now
 		db = nil
