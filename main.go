@@ -47,6 +47,12 @@ func main() {
 		// Continue without database for now
 	}
 
+	// Health check
+	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{"status":"OK","message":"API Running"}`)
+	})
+
 	// Only setup product and category endpoints if DB is available
 	if db != nil {
 		defer db.Close()
@@ -83,12 +89,6 @@ func main() {
 	} else {
 		log.Println("Warning: Product and Category endpoints disabled (no database)")
 	}
-
-	// Health check
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"status":"OK","message":"API Running"}`)
-	})
 
 	// Start server
 	addr := "0.0.0.0:" + config.Port
