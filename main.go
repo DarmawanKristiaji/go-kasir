@@ -45,6 +45,13 @@ func main() {
 		log.Printf("Warning: Failed to initialize database: %v", err)
 		log.Println("Starting server without database connection...")
 		// Continue without database for now
+		db = nil
+	}
+
+	if db != nil {
+		log.Println("Database connected successfully")
+	} else {
+		log.Println("WARNING: No database connection - routes may not be registered")
 	}
 
 	// Health check - register first
