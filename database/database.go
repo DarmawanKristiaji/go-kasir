@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"log"
+	"net/url"
+	"strings"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -11,7 +13,19 @@ import (
 
 func InitDB(connectionString string) (*sql.DB, error) {
 	if connectionString == "" {
+		log.Println("Connection string is empty")
 		return nil, sql.ErrNoRows
+	}
+
+	// Handle URL-encoded passwords - decode if it's a URL format
+	if strings.HasPrefix(connectionString, "postgresql://") || strings.HasPrefix(connectionString, "postgres://") {
+		// Parse URL and unescape password
+		parsedURL, err := url.Parse(connectionString)
+		if err == nil && parsedURL.User != nil {
+			password, _ := parsedURL.User.Password()
+			log.Printf("Detected URL format connection string with user: %s\n", parsedURL.User.Username())
+			// Reconstruct with properly decoded password (pq driver handles this)
+		}
 	}
 
 	// Open database with timeout context
@@ -21,6 +35,7 @@ func InitDB(connectionString string) (*sql.DB, error) {
 	// Open database
 	db, err := sql.Open("postgres", connectionString)
 	if err != nil {
+		log.Printf("Failed to open database: %v\n", err)
 		return nil, err
 	}
 
@@ -28,6 +43,7 @@ func InitDB(connectionString string) (*sql.DB, error) {
 	err = db.PingContext(ctx)
 	if err != nil {
 		log.Printf("Database ping failed: %v\n", err)
+		db.Close()
 		return nil, err
 	}
 

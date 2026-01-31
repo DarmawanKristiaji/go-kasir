@@ -37,10 +37,18 @@ func main() {
 		_ = viper.ReadInConfig()
 	}
 
-	// Get config from viper
+	// Get config from viper - try multiple sources
 	config := Config{
 		Port:   viper.GetString("PORT"),
 		DBConn: viper.GetString("DB_CONN"),
+	}
+
+	// Fallback: try reading directly from os.Getenv if viper didn't find it
+	if config.DBConn == "" {
+		config.DBConn = os.Getenv("DB_CONN")
+		if config.DBConn != "" {
+			log.Println("DB_CONN loaded from os.Getenv (viper fallback)")
+		}
 	}
 
 	if config.Port == "" {
