@@ -10,11 +10,11 @@ import (
 )
 
 type CategoryHandler struct {
-	service *services.CategoryService
+	categoryService *services.CategoryService
 }
 
-func NewCategoryHandler(service *services.CategoryService) *CategoryHandler {
-	return &CategoryHandler{service: service}
+func NewCategoryHandler(categoryService *services.CategoryService) *CategoryHandler {
+	return &CategoryHandler{categoryService: categoryService}
 }
 
 // HandleCategories - GET /categories and POST /categories
@@ -30,7 +30,7 @@ func (h *CategoryHandler) HandleCategories(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *CategoryHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-	categories, err := h.service.GetAll()
+	categories, err := h.categoryService.GetAll()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -48,7 +48,7 @@ func (h *CategoryHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.service.Create(&category)
+	err = h.categoryService.Create(&category)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -81,7 +81,7 @@ func (h *CategoryHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	category, err := h.service.GetByID(id)
+	category, err := h.categoryService.GetByID(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -107,7 +107,7 @@ func (h *CategoryHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	category.ID = id
-	err = h.service.Update(&category)
+	err = h.categoryService.Update(&category)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -125,7 +125,7 @@ func (h *CategoryHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.service.Delete(id)
+	err = h.categoryService.Delete(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
