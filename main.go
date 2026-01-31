@@ -47,7 +47,7 @@ func main() {
 		// Continue without database for now
 	}
 
-	// Health check
+	// Health check - register first
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintf(w, `{"status":"OK","message":"API Running"}`)
@@ -62,28 +62,32 @@ func main() {
 		productService := services.NewProductService(productRepo)
 		productHandler := handlers.NewProductHandler(productService)
 
-		// Setup routes for products with a single handler that dispatches based on path
-		http.HandleFunc("/api/produk/", func(w http.ResponseWriter, r *http.Request) {
+		// Setup routes for products - register handler for both paths
+		productRouter := func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/api/produk/" || r.URL.Path == "/api/produk" {
 				productHandler.HandleProducts(w, r)
 			} else {
 				productHandler.HandleProductByID(w, r)
 			}
-		})
+		}
+		http.HandleFunc("/api/produk", productRouter)
+		http.HandleFunc("/api/produk/", productRouter)
 
 		// Dependency Injection - Category
 		categoryRepo := repositories.NewCategoryRepository(db)
 		categoryService := services.NewCategoryService(categoryRepo)
 		categoryHandler := handlers.NewCategoryHandler(categoryService)
 
-		// Setup routes for categories with a single handler that dispatches based on path
-		http.HandleFunc("/categories/", func(w http.ResponseWriter, r *http.Request) {
+		// Setup routes for categories - register handler for both paths
+		categoryRouter := func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/categories/" || r.URL.Path == "/categories" {
 				categoryHandler.HandleCategories(w, r)
 			} else {
 				categoryHandler.HandleCategoryByID(w, r)
 			}
-		})
+		}
+		http.HandleFunc("/categories", categoryRouter)
+		http.HandleFunc("/categories/", categoryRouter)
 	} else {
 		log.Println("Warning: Product and Category endpoints disabled (no database)")
 	}
