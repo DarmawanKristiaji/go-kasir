@@ -56,9 +56,12 @@ func main() {
 		productService := services.NewProductService(productRepo)
 		productHandler := handlers.NewProductHandler(productService)
 
-		// Setup routes for products - use trailing slash for prefix matching
-		http.HandleFunc("/api/produk/", func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/api/produk/" || r.URL.Path == "/api/produk" {
+		// Setup routes for products - handle both with and without trailing slash
+		http.HandleFunc("/api/produk", func(w http.ResponseWriter, r *http.Request) {
+			// Strip trailing slash for consistency
+			path := strings.TrimSuffix(r.URL.Path, "/")
+			
+			if path == "/api/produk" {
 				productHandler.HandleProducts(w, r)
 			} else {
 				productHandler.HandleProductByID(w, r)
@@ -70,9 +73,12 @@ func main() {
 		categoryService := services.NewCategoryService(categoryRepo)
 		categoryHandler := handlers.NewCategoryHandler(categoryService)
 
-		// Setup routes for categories - use trailing slash for prefix matching
-		http.HandleFunc("/categories/", func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/categories/" || r.URL.Path == "/categories" {
+		// Setup routes for categories - handle both with and without trailing slash
+		http.HandleFunc("/categories", func(w http.ResponseWriter, r *http.Request) {
+			// Strip trailing slash for consistency
+			path := strings.TrimSuffix(r.URL.Path, "/")
+			
+			if path == "/categories" {
 				categoryHandler.HandleCategories(w, r)
 			} else {
 				categoryHandler.HandleCategoryByID(w, r)
