@@ -72,7 +72,11 @@ func main() {
 	// Health check - register first
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprintf(w, `{"status":"OK","message":"API Running - Go Kasir POS System","version":"1.0"}`)
+		dbStatus := "not connected"
+		if db != nil {
+			dbStatus = "connected"
+		}
+		fmt.Fprintf(w, `{"status":"OK","message":"API Running - Go Kasir POS System","version":"1.0","database":"%s"}`, dbStatus)
 	})
 
 	// Only setup product and category endpoints if DB is available
