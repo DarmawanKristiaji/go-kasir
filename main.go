@@ -50,7 +50,9 @@ func main() {
 	// Log database connection status
 	if config.DBConn == "" {
 		log.Println("ERROR: DB_CONN environment variable not set")
+		log.Println("Available env vars: PORT =", config.Port)
 	} else {
+		log.Printf("DB_CONN found with length: %d\n", len(config.DBConn))
 		log.Printf("Attempting database connection to: %s\n", maskConnectionString(config.DBConn))
 	}
 
@@ -58,6 +60,7 @@ func main() {
 	db, err := database.InitDB(config.DBConn)
 	if err != nil {
 		log.Printf("WARNING: Failed to initialize database: %v", err)
+		log.Printf("Connection string length: %d", len(config.DBConn))
 		log.Println("Starting server without database connection...")
 		// Continue without database for now
 		db = nil
