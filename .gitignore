@@ -5,4 +5,4 @@
 *.log
 .DS_Store
 /vendor/
-go.sum
+app.exe~
