@@ -42,18 +42,24 @@ func main() {
 	// Setup database
 	db, err := database.InitDB(config.DBConn)
 	if err != nil {
-		log.Fatal("Failed to initialize database:", err)
+		log.Printf("Warning: Failed to initialize database: %v", err)
+		log.Println("Starting server without database connection...")
+		// Continue without database for now
 	}
-	defer db.Close()
 
 	// Dependency Injection - Product
-	productRepo := repositories.NewProductRepository(db)
-	productService := services.NewProductService(productRepo)
-	productHandler := handlers.NewProductHandler(productService)
+	if db != nil {
+		defer db.Close()
+		productRepo := repositories.NewProductRepository(db)
+		productService := services.NewProductService(productRepo)
+		productHandler := handlers.NewProductHandler(productService)
 
-	// Setup routes
-	http.HandleFunc("/api/produk", productHandler.HandleProducts)
-	http.HandleFunc("/api/produk/", productHandler.HandleProductByID)
+		// Setup routes
+		http.HandleFunc("/api/produk", productHandler.HandleProducts)
+		http.HandleFunc("/api/produk/", productHandler.HandleProductByID)
+	} else {
+		log.Println("Warning: Product endpoints disabled (no database)")
+	}
 
 	// Health check
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
