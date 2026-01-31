@@ -84,10 +84,25 @@ func main() {
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		dbStatus := "not connected"
+		dbConnLen := 0
 		if db != nil {
 			dbStatus = "connected"
 		}
-		fmt.Fprintf(w, `{"status":"OK","message":"API Running - Go Kasir POS System","version":"1.0","database":"%s"}`, dbStatus)
+		if config.DBConn != "" {
+			dbConnLen = len(config.DBConn)
+		}
+		fmt.Fprintf(w, `{"status":"OK","message":"API Running - Go Kasir POS System","version":"1.0","database":"%s","db_conn_length":%d}`, dbStatus, dbConnLen)
+	})
+
+	// Debug endpoint (remove in production)
+	http.HandleFunc("/debug", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		dbConnSet := config.DBConn != ""
+		dbConnSample := ""
+		if dbConnSet && len(config.DBConn) > 20 {
+			dbConnSample = config.DBConn[:20] + "..."
+		}
+		fmt.Fprintf(w, `{"db_conn_set":%t,"db_conn_sample":"%s","port":"%s"}`, dbConnSet, dbConnSample, config.Port)
 	})
 
 	// Only setup product and category endpoints if DB is available
