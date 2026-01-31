@@ -62,10 +62,9 @@ func main() {
 		productService := services.NewProductService(productRepo)
 		productHandler := handlers.NewProductHandler(productService)
 
-		// Setup routes for products
-		http.HandleFunc("/api/produk", productHandler.HandleProducts)
+		// Setup routes for products with a single handler that dispatches based on path
 		http.HandleFunc("/api/produk/", func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/api/produk/" {
+			if r.URL.Path == "/api/produk/" || r.URL.Path == "/api/produk" {
 				productHandler.HandleProducts(w, r)
 			} else {
 				productHandler.HandleProductByID(w, r)
@@ -77,10 +76,9 @@ func main() {
 		categoryService := services.NewCategoryService(categoryRepo)
 		categoryHandler := handlers.NewCategoryHandler(categoryService)
 
-		// Setup routes for categories
-		http.HandleFunc("/categories", categoryHandler.HandleCategories)
+		// Setup routes for categories with a single handler that dispatches based on path
 		http.HandleFunc("/categories/", func(w http.ResponseWriter, r *http.Request) {
-			if r.URL.Path == "/categories/" {
+			if r.URL.Path == "/categories/" || r.URL.Path == "/categories" {
 				categoryHandler.HandleCategories(w, r)
 			} else {
 				categoryHandler.HandleCategoryByID(w, r)
