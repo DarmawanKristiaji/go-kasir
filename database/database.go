@@ -22,9 +22,8 @@ func InitDB(connectionString string) (*sql.DB, error) {
 		// Parse URL and unescape password
 		parsedURL, err := url.Parse(connectionString)
 		if err == nil && parsedURL.User != nil {
-			password, _ := parsedURL.User.Password()
 			log.Printf("Detected URL format connection string with user: %s\n", parsedURL.User.Username())
-			// Reconstruct with properly decoded password (pq driver handles this)
+			// pq driver handles URL decoding automatically
 		}
 	}
 
