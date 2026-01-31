@@ -57,8 +57,17 @@ func main() {
 		// Setup routes
 		http.HandleFunc("/api/produk", productHandler.HandleProducts)
 		http.HandleFunc("/api/produk/", productHandler.HandleProductByID)
+
+		// Dependency Injection - Category
+		categoryRepo := repositories.NewCategoryRepository(db)
+		categoryService := services.NewCategoryService(categoryRepo)
+		categoryHandler := handlers.NewCategoryHandler(categoryService)
+
+		// Setup category routes
+		http.HandleFunc("/categories", categoryHandler.HandleCategories)
+		http.HandleFunc("/categories/", categoryHandler.HandleCategoryByID)
 	} else {
-		log.Println("Warning: Product endpoints disabled (no database)")
+		log.Println("Warning: Product and Category endpoints disabled (no database)")
 	}
 
 	// Health check

@@ -15,8 +15,11 @@ func NewProductRepository(db *sql.DB) *ProductRepository {
 }
 
 func (repo *ProductRepository) GetAll() ([]models.Product, error) {
-	// Supabase auto-creates 'id' column as primary key
-	query := "SELECT id, name, price, stock FROM products ORDER BY id"
+	// JOIN with categories table to get category name
+	query := `SELECT p.id, p.name, p.price, p.stock, p.category_id, COALESCE(c.name, '') as category_name 
+	          FROM products p 
+	          LEFT JOIN categories c ON p.category_id = c.id 
+	          ORDER BY p.id`
 	rows, err := repo.db.Query(query)
 	if err != nil {
 		return nil, err
@@ -26,7 +29,7 @@ func (repo *ProductRepository) GetAll() ([]models.Product, error) {
 	products := make([]models.Product, 0)
 	for rows.Next() {
 		var p models.Product
-		err := rows.Scan(&p.ID, &p.Name, &p.Price, &p.Stock)
+		err := rows.Scan(&p.ID, &p.Name, &p.Price, &p.Stock, &p.CategoryID, &p.CategoryName)
 		if err != nil {
 			return nil, err
 		}
@@ -37,16 +40,20 @@ func (repo *ProductRepository) GetAll() ([]models.Product, error) {
 }
 
 func (repo *ProductRepository) Create(product *models.Product) error {
-	query := "INSERT INTO products (name, price, stock) VALUES ($1, $2, $3) RETURNING id"
-	err := repo.db.QueryRow(query, product.Name, product.Price, product.Stock).Scan(&product.ID)
+	query := "INSERT INTO products (name, price, stock, category_id) VALUES ($1, $2, $3, $4) RETURNING id"
+	err := repo.db.QueryRow(query, product.Name, product.Price, product.Stock, product.CategoryID).Scan(&product.ID)
 	return err
 }
 
 func (repo *ProductRepository) GetByID(id int) (*models.Product, error) {
-	query := "SELECT id, name, price, stock FROM products WHERE id = $1"
+	// JOIN with categories to include category info
+	query := `SELECT p.id, p.name, p.price, p.stock, p.category_id, COALESCE(c.name, '') as category_name 
+	          FROM products p 
+	          LEFT JOIN categories c ON p.category_id = c.id 
+	          WHERE p.id = $1`
 
 	var p models.Product
-	err := repo.db.QueryRow(query, id).Scan(&p.ID, &p.Name, &p.Price, &p.Stock)
+	err := repo.db.QueryRow(query, id).Scan(&p.ID, &p.Name, &p.Price, &p.Stock, &p.CategoryID, &p.CategoryName)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("produk tidak ditemukan")
 	}
@@ -58,8 +65,8 @@ func (repo *ProductRepository) GetByID(id int) (*models.Product, error) {
 }
 
 func (repo *ProductRepository) Update(product *models.Product) error {
-	query := "UPDATE products SET name = $1, price = $2, stock = $3 WHERE id = $4"
-	result, err := repo.db.Exec(query, product.Name, product.Price, product.Stock, product.ID)
+	query := "UPDATE products SET name = $1, price = $2, stock = $3, category_id = $4 WHERE id = $5"
+	result, err := repo.db.Exec(query, product.Name, product.Price, product.Stock, product.CategoryID, product.ID)
 	if err != nil {
 		return err
 	}
