@@ -47,25 +47,37 @@ func main() {
 		// Continue without database for now
 	}
 
-	// Dependency Injection - Product
+	// Only setup product and category endpoints if DB is available
 	if db != nil {
 		defer db.Close()
+
+		// Dependency Injection - Product
 		productRepo := repositories.NewProductRepository(db)
 		productService := services.NewProductService(productRepo)
 		productHandler := handlers.NewProductHandler(productService)
 
-		// Setup routes
-		http.HandleFunc("/api/produk", productHandler.HandleProducts)
-		http.HandleFunc("/api/produk/", productHandler.HandleProductByID)
+		// Setup routes for products
+		http.HandleFunc("/api/produk", func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/api/produk" {
+				productHandler.HandleProducts(w, r)
+			} else {
+				productHandler.HandleProductByID(w, r)
+			}
+		})
 
 		// Dependency Injection - Category
 		categoryRepo := repositories.NewCategoryRepository(db)
 		categoryService := services.NewCategoryService(categoryRepo)
 		categoryHandler := handlers.NewCategoryHandler(categoryService)
 
-		// Setup category routes
-		http.HandleFunc("/categories", categoryHandler.HandleCategories)
-		http.HandleFunc("/categories/", categoryHandler.HandleCategoryByID)
+		// Setup routes for categories
+		http.HandleFunc("/categories", func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/categories" {
+				categoryHandler.HandleCategories(w, r)
+			} else {
+				categoryHandler.HandleCategoryByID(w, r)
+			}
+		})
 	} else {
 		log.Println("Warning: Product and Category endpoints disabled (no database)")
 	}
