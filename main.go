@@ -96,7 +96,28 @@ func main() {
 		http.HandleFunc("/categories", categoryRouter)
 		http.HandleFunc("/categories/", categoryRouter)
 	} else {
-		log.Println("Warning: Product and Category endpoints disabled (no database)")
+		log.Println("WARNING: No database connection - routes disabled")
+		// Still register placeholder endpoints for debugging
+		http.HandleFunc("/api/produk", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			fmt.Fprintf(w, `{"status":"error","message":"Database not connected"}`)
+		})
+		http.HandleFunc("/api/produk/", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			fmt.Fprintf(w, `{"status":"error","message":"Database not connected"}`)
+		})
+		http.HandleFunc("/categories", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			fmt.Fprintf(w, `{"status":"error","message":"Database not connected"}`)
+		})
+		http.HandleFunc("/categories/", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			fmt.Fprintf(w, `{"status":"error","message":"Database not connected"}`)
+		})
 	}
 
 	// Start server
