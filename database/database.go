@@ -268,6 +268,11 @@ func runMigrations(db *sql.DB) error {
 		return err
 	}
 
+	// ALTER TABLE to add category_id if it doesn't exist (for existing tables)
+	_, _ = db.ExecContext(ctx, `
+		ALTER TABLE products ADD COLUMN IF NOT EXISTS category_id BIGINT REFERENCES categories(id) ON DELETE SET NULL
+	`)
+
 	log.Println("Database migrations completed successfully")
 	return nil
 }
