@@ -7,11 +7,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/spf13/viper"
 	"kasir-api/database"
 	"kasir-api/handlers"
 	"kasir-api/repositories"
 	"kasir-api/services"
+
+	"github.com/spf13/viper"
 )
 
 type Config struct {
@@ -67,8 +68,8 @@ func main() {
 	// Setup database
 	db, err := database.InitDB(config.DBConn)
 	if err != nil {
-		log.Printf("WARNING: Failed to initialize database: %v", err)
-		log.Printf("Connection string length: %d", len(config.DBConn))
+		log.Printf("WARNING: Failed to initialize database: %v\n", err)
+		log.Printf("Connection string length: %d\n", len(config.DBConn))
 		log.Println("Starting server without database connection...")
 		// Continue without database for now
 		db = nil
@@ -82,6 +83,11 @@ func main() {
 
 	// Health check - register first
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Printf("PANIC in /health: %v\n", err)
+			}
+		}()
 		w.Header().Set("Content-Type", "application/json")
 		dbStatus := "not connected"
 		dbConnLen := 0
@@ -91,7 +97,8 @@ func main() {
 		if config.DBConn != "" {
 			dbConnLen = len(config.DBConn)
 		}
-		fmt.Fprintf(w, `{"status":"OK","message":"API Running - Go Kasir POS System","version":"1.0","database":"%s","db_conn_length":%d}`, dbStatus, dbConnLen)
+		response := fmt.Sprintf(`{"status":"OK","message":"API Running - Go Kasir POS System","version":"1.0","database":"%s","db_conn_length":%d}`, dbStatus, dbConnLen)
+		w.Write([]byte(response))
 	})
 
 	// Debug endpoint (remove in production)
@@ -105,9 +112,24 @@ func main() {
 		fmt.Fprintf(w, `{"db_conn_set":%t,"db_conn_sample":"%s","port":"%s"}`, dbConnSet, dbConnSample, config.Port)
 	})
 
+	// Recovery middleware for panic handling
+	recoverMiddleware := func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			defer func() {
+				if err := recover(); err != nil {
+					log.Printf("PANIC in %s %s: %v\n", r.Method, r.URL.Path, err)
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusInternalServerError)
+					fmt.Fprintf(w, `{"status":"error","message":"Internal server error"}`)
+				}
+			}()
+			next(w, r)
+		}
+	}
+
 	// Only setup product and category endpoints if DB is available
 	if db != nil {
-		defer db.Close()
+		// defer db.Close()  // Don't close immediately, keep connection open for server lifetime
 
 		// Dependency Injection - Product
 		productRepo := repositories.NewProductRepository(db)
@@ -122,8 +144,8 @@ func main() {
 				productHandler.HandleProductByID(w, r)
 			}
 		}
-		http.HandleFunc("/api/produk", productRouter)
-		http.HandleFunc("/api/produk/", productRouter)
+		http.HandleFunc("/api/produk", recoverMiddleware(productRouter))
+		http.HandleFunc("/api/produk/", recoverMiddleware(productRouter))
 
 		// Dependency Injection - Category
 		categoryRepo := repositories.NewCategoryRepository(db)
@@ -138,8 +160,8 @@ func main() {
 				categoryHandler.HandleCategoryByID(w, r)
 			}
 		}
-		http.HandleFunc("/categories", categoryRouter)
-		http.HandleFunc("/categories/", categoryRouter)
+		http.HandleFunc("/categories", recoverMiddleware(categoryRouter))
+		http.HandleFunc("/categories/", recoverMiddleware(categoryRouter))
 	} else {
 		log.Println("WARNING: No database connection - routes disabled")
 		// Still register placeholder endpoints for debugging

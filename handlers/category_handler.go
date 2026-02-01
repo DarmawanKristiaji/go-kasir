@@ -36,6 +36,11 @@ func (h *CategoryHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Ensure non-nil slice for JSON encoding
+	if categories == nil {
+		categories = make([]models.Category, 0)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(categories)
 }

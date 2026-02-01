@@ -36,6 +36,11 @@ func (h *ProductHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Ensure non-nil slice for JSON encoding
+	if products == nil {
+		products = make([]models.Product, 0)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(products)
 }
