@@ -1,8 +1,30 @@
+# Binaries
 *.exe
 *.dll
 *.so
 *.dylib
+app
+kasir
+
+# Environment
+.env
+.env.local
+
+# Logs
 *.log
+
+# OS files
 .DS_Store
+
+# Dependencies
 /vendor/
+
+# Test files
+test.go
+
+# Build artifacts
 app.exe~
+
+# IDE
+.vscode/
+.idea/

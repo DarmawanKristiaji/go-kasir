@@ -110,7 +110,8 @@ func main() {
       "delete": "DELETE /api/produk/{id} - Delete product"
     }
   },
-  "repository": "https://github.com/DarmawanKristiaji/go-kasir"
+  "repository": "https://github.com/DarmawanKristiaji/go-kasir",
+  "production_url": "https://go-kasir-railway.dakr.my.id/"
 }`)
 	})
 
