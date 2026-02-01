@@ -3,8 +3,10 @@ package database
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"log"
 	"net"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -117,6 +119,10 @@ func resolveIPv4(hostname string) (string, error) {
 		return ipv4, nil
 	}
 
+	if ipv4 := lookupIPv4WithDoH(ctx, hostname); ipv4 != "" {
+		return ipv4, nil
+	}
+
 	return "", nil
 }
 
@@ -129,6 +135,45 @@ func lookupIPv4WithResolver(ctx context.Context, resolver *net.Resolver, hostnam
 	for _, ip := range ips {
 		if ipv4 := ip.To4(); ipv4 != nil {
 			return ipv4.String()
+		}
+	}
+
+	return ""
+}
+
+func lookupIPv4WithDoH(ctx context.Context, hostname string) string {
+	endpoint := "https://cloudflare-dns.com/dns-query?name=" + url.QueryEscape(hostname) + "&type=A"
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return ""
+	}
+	req.Header.Set("Accept", "application/dns-json")
+
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return ""
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return ""
+	}
+
+	var parsed struct {
+		Answer []struct {
+			Data string `json:"data"`
+			Type int    `json:"type"`
+		} `json:"Answer"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&parsed); err != nil {
+		return ""
+	}
+
+	for _, ans := range parsed.Answer {
+		if ans.Type == 1 && net.ParseIP(ans.Data) != nil {
+			return ans.Data
 		}
 	}
 
