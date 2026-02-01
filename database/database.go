@@ -36,19 +36,12 @@ func InitDB(connectionString string) (*sql.DB, error) {
 			if strings.HasPrefix(part, "host=") {
 				hostname := strings.TrimPrefix(part, "host=")
 				log.Printf("Attempting to resolve hostname: %s\n", hostname)
-				
-				// Use net.LookupIP with IPv4 preference
-				ips, err := net.LookupIP(hostname)
-				if err == nil && len(ips) > 0 {
-					// Find IPv4 address
-					for _, ip := range ips {
-						if ipv4 := ip.To4(); ipv4 != nil {
-							log.Printf("Resolved to IPv4: %s\n", ipv4.String())
-							parts[i] = "host=" + ipv4.String()
-							connectionString = strings.Join(parts, " ")
-							break
-						}
-					}
+
+				ipv4, err := resolveIPv4(hostname)
+				if err == nil && ipv4 != "" {
+					log.Printf("Resolved to IPv4: %s\n", ipv4)
+					parts[i] = "host=" + ipv4
+					connectionString = strings.Join(parts, " ")
 				}
 				break
 			}
@@ -81,4 +74,30 @@ func InitDB(connectionString string) (*sql.DB, error) {
 
 	log.Println("Database connected successfully")
 	return db, nil
+}
+
+func resolveIPv4(hostname string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	resolver := &net.Resolver{
+		PreferGo: true,
+		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+			var d net.Dialer
+			return d.DialContext(ctx, "udp4", "8.8.8.8:53")
+		},
+	}
+
+	ips, err := resolver.LookupIPAddr(ctx, hostname)
+	if err != nil {
+		return "", err
+	}
+
+	for _, ip := range ips {
+		if ipv4 := ip.IP.To4(); ipv4 != nil {
+			return ipv4.String(), nil
+		}
+	}
+
+	return "", nil
 }
