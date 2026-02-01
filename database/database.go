@@ -90,6 +90,12 @@ func InitDB(connectionString string) (*sql.DB, error) {
 		return nil, err
 	}
 
+	// Run migrations to ensure schema exists
+	if err := runMigrations(db); err != nil {
+		log.Printf("WARNING: Migration failed: %v\n", err)
+		// Don't fail - schema might already exist
+	}
+
 	// Set connection pool settings
 	db.SetMaxOpenConns(25)
 	db.SetMaxIdleConns(5)
@@ -228,4 +234,40 @@ func buildDSNFromURL(parsedURL *url.URL, hostaddr string, query url.Values) stri
 	parts = append(parts, "sslmode="+sslmode)
 
 	return strings.Join(parts, " ")
+}
+// runMigrations applies the database schema
+func runMigrations(db *sql.DB) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Create categories table if not exists
+	_, err := db.ExecContext(ctx, `
+		CREATE TABLE IF NOT EXISTS categories (
+			id BIGSERIAL PRIMARY KEY,
+			name VARCHAR(255) NOT NULL,
+			description TEXT,
+			created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	if err != nil {
+		return err
+	}
+
+	// Create products table if not exists
+	_, err = db.ExecContext(ctx, `
+		CREATE TABLE IF NOT EXISTS products (
+			id BIGSERIAL PRIMARY KEY,
+			name VARCHAR(255) NOT NULL,
+			price INT NOT NULL,
+			stock INT NOT NULL,
+			category_id BIGINT REFERENCES categories(id) ON DELETE SET NULL,
+			created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	if err != nil {
+		return err
+	}
+
+	log.Println("Database migrations completed successfully")
+	return nil
 }
