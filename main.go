@@ -81,6 +81,39 @@ func main() {
 		log.Println("WARNING: No database connection - routes may not be registered")
 	}
 
+	// Root endpoint - API documentation
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			w.WriteHeader(http.StatusNotFound)
+			fmt.Fprintf(w, `{"status":"error","message":"Endpoint not found"}`)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		fmt.Fprintf(w, `{
+  "name": "Go Kasir POS API",
+  "version": "1.0",
+  "description": "Point of Sale REST API with Go",
+  "endpoints": {
+    "health": "GET /health - Check API status",
+    "categories": {
+      "list": "GET /categories - List all categories",
+      "create": "POST /categories - Create new category",
+      "detail": "GET /categories/{id} - Get category by ID",
+      "update": "PUT /categories/{id} - Update category",
+      "delete": "DELETE /categories/{id} - Delete category"
+    },
+    "products": {
+      "list": "GET /api/produk - List all products with category names",
+      "create": "POST /api/produk - Create new product",
+      "detail": "GET /api/produk/{id} - Get product by ID",
+      "update": "PUT /api/produk/{id} - Update product",
+      "delete": "DELETE /api/produk/{id} - Delete product"
+    }
+  },
+  "repository": "https://github.com/DarmawanKristiaji/go-kasir"
+}`)
+	})
+
 	// Health check - register first
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
