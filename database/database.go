@@ -26,6 +26,28 @@ func InitDB(connectionString string) (*sql.DB, error) {
 			log.Printf("Detected URL format connection string with user: %s\n", parsedURL.User.Username())
 			// pq driver handles URL decoding automatically
 		}
+
+		if err == nil {
+			hostname := parsedURL.Hostname()
+			if hostname != "" {
+				log.Printf("Attempting to resolve hostname: %s\n", hostname)
+				ipv4, resolveErr := resolveIPv4(hostname)
+				if resolveErr == nil && ipv4 != "" {
+					log.Printf("Resolved to IPv4: %s\n", ipv4)
+					query := parsedURL.Query()
+					query.Set("hostaddr", ipv4)
+					parsedURL.RawQuery = query.Encode()
+				}
+			}
+
+			query := parsedURL.Query()
+			if query.Get("sslmode") == "" {
+				query.Set("sslmode", "require")
+				parsedURL.RawQuery = query.Encode()
+			}
+
+			connectionString = parsedURL.String()
+		}
 	}
 
 	// Force IPv4 by resolving hostname first
@@ -40,7 +62,8 @@ func InitDB(connectionString string) (*sql.DB, error) {
 				ipv4, err := resolveIPv4(hostname)
 				if err == nil && ipv4 != "" {
 					log.Printf("Resolved to IPv4: %s\n", ipv4)
-					parts[i] = "host=" + ipv4
+					parts[i] = "host=" + hostname
+					parts = append(parts, "hostaddr="+ipv4)
 					connectionString = strings.Join(parts, " ")
 				}
 				break
@@ -80,21 +103,13 @@ func resolveIPv4(hostname string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	resolver := &net.Resolver{
-		PreferGo: true,
-		Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-			var d net.Dialer
-			return d.DialContext(ctx, "udp4", "8.8.8.8:53")
-		},
-	}
-
-	ips, err := resolver.LookupIPAddr(ctx, hostname)
+	ips, err := net.DefaultResolver.LookupIP(ctx, "ip4", hostname)
 	if err != nil {
 		return "", err
 	}
 
 	for _, ip := range ips {
-		if ipv4 := ip.IP.To4(); ipv4 != nil {
+		if ipv4 := ip.To4(); ipv4 != nil {
 			return ipv4.String(), nil
 		}
 	}
