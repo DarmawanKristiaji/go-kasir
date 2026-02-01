@@ -112,21 +112,6 @@ func main() {
 		fmt.Fprintf(w, `{"db_conn_set":%t,"db_conn_sample":"%s","port":"%s"}`, dbConnSet, dbConnSample, config.Port)
 	})
 
-	// Recovery middleware for panic handling
-	recoverMiddleware := func(next http.HandlerFunc) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			defer func() {
-				if err := recover(); err != nil {
-					log.Printf("PANIC in %s %s: %v\n", r.Method, r.URL.Path, err)
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusInternalServerError)
-					fmt.Fprintf(w, `{"status":"error","message":"Internal server error"}`)
-				}
-			}()
-			next(w, r)
-		}
-	}
-
 	// Only setup product and category endpoints if DB is available
 	if db != nil {
 		// defer db.Close()  // Don't close immediately, keep connection open for server lifetime
@@ -144,8 +129,8 @@ func main() {
 				productHandler.HandleProductByID(w, r)
 			}
 		}
-		http.HandleFunc("/api/produk", recoverMiddleware(productRouter))
-		http.HandleFunc("/api/produk/", recoverMiddleware(productRouter))
+		http.HandleFunc("/api/produk", productRouter)
+		http.HandleFunc("/api/produk/", productRouter)
 
 		// Dependency Injection - Category
 		categoryRepo := repositories.NewCategoryRepository(db)
@@ -160,8 +145,8 @@ func main() {
 				categoryHandler.HandleCategoryByID(w, r)
 			}
 		}
-		http.HandleFunc("/categories", recoverMiddleware(categoryRouter))
-		http.HandleFunc("/categories/", recoverMiddleware(categoryRouter))
+		http.HandleFunc("/categories", categoryRouter)
+		http.HandleFunc("/categories/", categoryRouter)
 	} else {
 		log.Println("WARNING: No database connection - routes disabled")
 		// Still register placeholder endpoints for debugging
