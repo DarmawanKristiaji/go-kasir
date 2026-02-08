@@ -273,6 +273,32 @@ func runMigrations(db *sql.DB) error {
 		ALTER TABLE products ADD COLUMN IF NOT EXISTS category_id BIGINT REFERENCES categories(id) ON DELETE SET NULL
 	`)
 
+	// Create transactions table if not exists
+	_, err = db.ExecContext(ctx, `
+		CREATE TABLE IF NOT EXISTS transactions (
+			id BIGSERIAL PRIMARY KEY,
+			total_amount INT NOT NULL,
+			created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	if err != nil {
+		return err
+	}
+
+	// Create transaction_details table if not exists
+	_, err = db.ExecContext(ctx, `
+		CREATE TABLE IF NOT EXISTS transaction_details (
+			id BIGSERIAL PRIMARY KEY,
+			transaction_id BIGINT REFERENCES transactions(id) ON DELETE CASCADE,
+			product_id BIGINT REFERENCES products(id),
+			quantity INT NOT NULL,
+			subtotal INT NOT NULL
+		)
+	`)
+	if err != nil {
+		return err
+	}
+
 	log.Println("Database migrations completed successfully")
 	return nil
 }

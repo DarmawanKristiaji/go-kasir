@@ -103,11 +103,15 @@ func main() {
       "delete": "DELETE /categories/{id} - Delete category"
     },
     "products": {
-      "list": "GET /api/produk - List all products with category names",
+			"list": "GET /api/produk?name=indom - Search products by name",
       "create": "POST /api/produk - Create new product",
       "detail": "GET /api/produk/{id} - Get product by ID",
       "update": "PUT /api/produk/{id} - Update product",
       "delete": "DELETE /api/produk/{id} - Delete product"
+		},
+		"transactions": {
+			"checkout": "POST /api/checkout - Create transaction from cart items",
+			"report_hari_ini": "GET /api/report/hari-ini - Sales summary today"
     }
   },
   "repository": "https://github.com/DarmawanKristiaji/go-kasir",
@@ -181,6 +185,14 @@ func main() {
 		}
 		http.HandleFunc("/categories", categoryRouter)
 		http.HandleFunc("/categories/", categoryRouter)
+
+		// Dependency Injection - Transaction
+		transactionRepo := repositories.NewTransactionRepository(db)
+		transactionService := services.NewTransactionService(transactionRepo)
+		transactionHandler := handlers.NewTransactionHandler(transactionService)
+
+		http.HandleFunc("/api/checkout", transactionHandler.HandleCheckout)
+		http.HandleFunc("/api/report/hari-ini", transactionHandler.HandleReportToday)
 	} else {
 		log.Println("WARNING: No database connection - routes disabled")
 		// Still register placeholder endpoints for debugging
@@ -200,6 +212,16 @@ func main() {
 			fmt.Fprintf(w, `{"status":"error","message":"Database not connected"}`)
 		})
 		http.HandleFunc("/categories/", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			fmt.Fprintf(w, `{"status":"error","message":"Database not connected"}`)
+		})
+		http.HandleFunc("/api/checkout", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusServiceUnavailable)
+			fmt.Fprintf(w, `{"status":"error","message":"Database not connected"}`)
+		})
+		http.HandleFunc("/api/report/hari-ini", func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusServiceUnavailable)
 			fmt.Fprintf(w, `{"status":"error","message":"Database not connected"}`)

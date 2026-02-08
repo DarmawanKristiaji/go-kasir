@@ -102,10 +102,18 @@ Server will start on `http://localhost:8080` (or the PORT specified in `.env`)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/produk` | List all products (with category names) |
+| GET | `/api/produk?name=indom` | Search products by name |
 | POST | `/api/produk` | Create new product |
 | GET | `/api/produk/{id}` | Get product by ID (with category name) |
 | PUT | `/api/produk/{id}` | Update product |
 | DELETE | `/api/produk/{id}` | Delete product |
+
+### Transactions
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/checkout` | Create transaction from cart items |
+| GET | `/api/report/hari-ini` | Sales summary for today |
 
 **Product JSON Structure:**
 ```json
@@ -148,6 +156,12 @@ curl -X POST https://go-kasir-railway.dakr.my.id/api/produk \
 curl https://go-kasir-railway.dakr.my.id/api/produk
 ```
 
+### Search Products by Name
+
+```bash
+curl "https://go-kasir-railway.dakr.my.id/api/produk?name=indom"
+```
+
 Response includes `category_name` via LEFT JOIN:
 ```json
 [
@@ -160,6 +174,25 @@ Response includes `category_name` via LEFT JOIN:
     "category_name": "Minuman"
   }
 ]
+```
+
+### Checkout (Create Transaction)
+
+```bash
+curl -X POST https://go-kasir-railway.dakr.my.id/api/checkout \
+  -H "Content-Type: application/json" \
+  -d '{
+    "items": [
+      {"product_id": 1, "quantity": 2},
+      {"product_id": 3, "quantity": 1}
+    ]
+  }'
+```
+
+### Sales Summary (Hari Ini)
+
+```bash
+curl https://go-kasir-railway.dakr.my.id/api/report/hari-ini
 ```
 
 ## 🏗️ Project Structure
@@ -256,6 +289,26 @@ CREATE TABLE products (
 ```
 
 **Relationship:** Products have optional foreign key to Categories with `ON DELETE SET NULL`
+
+### Transactions Table
+```sql
+CREATE TABLE transactions (
+  id BIGSERIAL PRIMARY KEY,
+  total_amount INT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### Transaction Details Table
+```sql
+CREATE TABLE transaction_details (
+  id BIGSERIAL PRIMARY KEY,
+  transaction_id BIGINT REFERENCES transactions(id) ON DELETE CASCADE,
+  product_id BIGINT REFERENCES products(id),
+  quantity INT NOT NULL,
+  subtotal INT NOT NULL
+);
+```
 
 ## 🔐 Environment Configuration
 
